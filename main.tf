@@ -79,6 +79,21 @@ resource "aws_iam_role_policy" "ec2_s3_policy" {
   })
 }
 
+resource "aws_iam_role_policy" "ec2_full_access_policy" {
+  name   = "ec2-full-access-policy"
+  role   = aws_iam_role.ec2_s3_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["ec2:*"]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "ec2_s3_profile" {
   name = "ec2-s3-profile"
   role = aws_iam_role.ec2_s3_role.name
@@ -129,8 +144,37 @@ resource "aws_instance" "win_srv_instance" {
       # Create log file for debugging
       Start-Transcript -Path "C:\DSC\user_data_log.txt" -Append
       
-      # Create the C:\DSC directory if it doesn't exist
+      # Create the C:\DSC and C:\logs directories with proper permissions
       New-Item -ItemType Directory -Path "C:\DSC" -Force
+      $logDir = "C:\logs"
+      if (-not (Test-Path -Path $logDir)) {
+          New-Item -ItemType Directory -Path $logDir -Force
+          $acl = Get-Acl -Path $logDir
+          $rule = New-Object System.Security.AccessControl.FileSystemAccessRule("SYSTEM", "FullControl", "ContainerInherit, ObjectInherit", "None", "Allow")
+          $acl.AddAccessRule($rule)
+          Set-Acl -Path $logDir -AclObject $acl
+          Write-Output "Created C:\logs with SYSTEM full control."
+      }
+  
+      # Install Node.js
+      Write-Output "Installing Node.js..."
+      $nodeUrl = "https://nodejs.org/dist/v20.17.0/node-v20.17.0-x64.msi" # Use the latest LTS version
+      Invoke-WebRequest -Uri $nodeUrl -OutFile "C:\DSC\node-v20.17.0-x64.msi"
+      Start-Process -FilePath "msiexec.exe" -ArgumentList "/i C:\DSC\node-v20.17.0-x64.msi /quiet /norestart" -Wait
+      Remove-Item "C:\DSC\node-v20.17.0-x64.msi" -Force
+      $env:Path += ";C:\Program Files\nodejs\"
+      [Environment]::SetEnvironmentVariable("Path", $env:Path, [System.EnvironmentVariableTarget]::Machine)
+      Write-Output "Node.js installation completed."
+  
+#       $scriptDir = "C:\Scripts"
+#       if (-not (Test-Path -Path $scriptDir)) {
+#           New-Item -ItemType Directory -Path $scriptDir -Force
+#           $acl = Get-Acl -Path $scriptDir
+#           $rule = New-Object System.Security.AccessControl.FileSystemAccessRule("SYSTEM", "FullControl", "ContainerInherit, ObjectInherit", "None", "Allow")
+#           $acl.AddAccessRule($rule)
+#           Set-Acl -Path $scriptDir -AclObject $acl
+#           Write-Output "Created C:\Scripts with SYSTEM full control."
+#       }
       
       # Install AWS CLI
       Write-Output "Installing AWS CLI..."
