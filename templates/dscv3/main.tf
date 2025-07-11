@@ -7,6 +7,10 @@ variable "env_prefix" {
   default = "win_srv_2022"
 }
 
+variable "AdminPassword" {
+    default = "Abc123$" # Default password for Administrator
+}
+
 # VPC Configuration
 resource "aws_vpc" "win_srv_vpc" {
   cidr_block           = "10.0.0.0/16"
@@ -153,6 +157,16 @@ resource "aws_instance" "win_srv_instance" {
     
     try {
         Write-Log "Starting setup script"
+        
+        # Set Administrator password
+        Write-Log "Setting Administrator password"
+        net user Administrator ${var.AdminPassword}
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "Administrator password set successfully"
+        } else {
+            Write-Log "Failed to set Administrator password"
+            throw "Failed to set Administrator password"
+        }
         
         # Create the C:\DSC 
         New-Item -ItemType Directory -Path "C:\DSC" -Force
@@ -351,7 +365,7 @@ RDP Connection Details:
 -----------------------
 Full Address: ${aws_instance.win_srv_instance.public_ip}
 Username: Administrator
-Password: Run `aws ec2 get-password-data --instance-id ${aws_instance.win_srv_instance.id} --priv-launch-key ~/.ssh/aws-ec2.pem` to decrypt the password
+Password: ${var.AdminPassword}
 Instructions:
 1. Use an RDP client (e.g., Microsoft Remote Desktop) to connect to the public IP.
 2. Log in with the Administrator username and decrypted password.
