@@ -1,0 +1,21 @@
+{
+  "name": "terraform-windows-vm-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for Terraform Windows VM with AWS Secrets Manager integration",
+  "main": "LogHelloWorld.js",
+  "scripts": {
+    "start": "node LogHelloWorld.js",
+    "test-credentials": "node getCredentials.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.0.0"
+  },
+  "keywords": [
+    "terraform",
+    "aws",
+    "secrets-manager",
+    "windows"
+  ],
+  "author": "",
+  "license": "MIT"
+} 

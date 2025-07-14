@@ -2,69 +2,75 @@
 Configuration ConfigureIIS {
     param (
         [string]$NodeName = 'localhost',
-		[string]$SourceScriptPath = 'C:\DSC\LogHelloWorld.js',
+		[string]$SourceScriptPath = 'C:\DSC\Scripts\LogHelloWorld.js',
 		[string]$LogDir = 'C:\logs'
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DscResource -ModuleName xWebAdministration
 
+    function Write-DSCLog {
+        param([string]$Message)
+        $logFile = 'C:\logs\ConfigureIIS.log'
+        "[$(Get-Date -Format o)] $Message" | Out-File -FilePath $logFile -Append
+    }
+
     Node $NodeName {
 #        WindowsFeature IIS {
 #            Ensure = 'Present'
 #            Name   = 'Web-Server'
 #        }
-
+# 
 #         WindowsFeature NetFramework35 {
 #             Ensure    = 'Present'
 #             Name      = 'NET-Framework-Features'
 #             DependsOn = '[WindowsFeature]IIS'
 #         }
-
+# 
 #         WindowsFeature AspNet35 {
 #             Ensure    = 'Present'
 #             Name      = 'Web-Asp-Net'
 #             DependsOn = '[WindowsFeature]NetFramework35'
 #         }
-
+# 
 #         WindowsFeature AspNet45 {
 #             Ensure    = 'Present'
 #             Name      = 'Web-Asp-Net45'
 #             DependsOn = '[WindowsFeature]IIS'
 #         }
-
+# 
 #         WindowsFeature NetFramework45 {
 #             Ensure    = 'Present'
 #             Name      = 'NET-Framework-45-Core'
 #             DependsOn = '[WindowsFeature]IIS'
 #         }
-
+# 
 #         WindowsFeature WebManagementTools {
 #             Ensure    = 'Present'
 #             Name      = 'Web-Mgmt-Tools'
 #             DependsOn = '[WindowsFeature]IIS'
 #         }
-
+# 
 #         WindowsFeature WebManagementService {
 #             Ensure    = 'Present'
 #             Name      = 'Web-Mgmt-Service'
 #             DependsOn = '[WindowsFeature]IIS'
 #         }
-
+# 
 #         Service IISService {
 #             Name       = 'W3SVC'
 #             StartupType = 'Automatic'
 #             State      = 'Running'
 #             DependsOn  = '[WindowsFeature]IIS'
 #         }
-
+# 
 #         Service WMSVC {
 #             Name       = 'WMSVC'
 #             StartupType = 'Automatic'
 #             State      = 'Running'
 #             DependsOn  = '[WindowsFeature]WebManagementService'
 #         }
-
+# 
 #         xWebsite DefaultSite {
 #             Ensure          = 'Present'
 #             Name            = 'Default Web Site'
@@ -78,7 +84,7 @@ Configuration ConfigureIIS {
 #             )
 #             DependsOn       = '[WindowsFeature]IIS'
 #         }
-
+# 
 #         xWebAppPool DefaultAppPool {
 #             Ensure                = 'Present'
 #             Name                  = 'DefaultAppPool'
@@ -86,7 +92,7 @@ Configuration ConfigureIIS {
 #             ManagedRuntimeVersion = 'v4.0'
 #             DependsOn             = '[WindowsFeature]IIS'
 #         }
-
+# 
 #         xWebAppPool AppPoolV2 {
 #             Ensure                = 'Present'
 #             Name                  = 'DefaultAppPoolV2'
@@ -94,7 +100,7 @@ Configuration ConfigureIIS {
 #             ManagedRuntimeVersion = 'v2.0'
 #             DependsOn             = '[WindowsFeature]IIS'
 #         }
-
+# 
 #         xWebAppPool AppPoolV4 {
 #             Ensure                = 'Present'
 #             Name                  = 'DefaultAppPoolV4'
@@ -150,8 +156,32 @@ Configuration ConfigureIIS {
 			Ensure          = 'Present'
 			Type            = 'Directory'
 			DestinationPath = $LogDir
-			# DependsOn       = '[WindowsFeature]IIS'
+# 			DependsOn       = '[WindowsFeature]IIS'
 		}
+
+        # Ensure LogHelloWorld.js is present in C:\DSC
+#         File LogHelloWorldScript {
+#             Ensure          = 'Present'
+#             Type            = 'File'
+#             SourcePath      = 'C:\DSC\LogHelloWorld.js'
+#             DestinationPath = 'C:\DSC\LogHelloWorld.js'
+#             DependsOn       = '[File]LogDirectory'
+#             Checksum        = 'SHA-256'
+#             Force           = $true
+#             MatchSource     = $true
+#         }
+
+        # Ensure getCredentials.js is present in C:\DSC
+#         File GetCredentialsScript {
+#             Ensure          = 'Present'
+#             Type            = 'File'
+#             SourcePath      = 'C:\DSC\getCredentials.js'
+#             DestinationPath = 'C:\DSC\getCredentials.js'
+#             DependsOn       = '[File]LogDirectory'
+#             Checksum        = 'SHA-256'
+#             Force           = $true
+#             MatchSource     = $true
+#         }
 
 		# Ensure the scripts directory exists
 		# File ScriptsDirectory {
@@ -190,13 +220,13 @@ Configuration ConfigureIIS {
 		# }
 		
 		# Create a scheduled task to run the script
-		Script ScheduledTask
+        Script ScheduledTask
         {
             SetScript = {
                 $taskName = 'LogHelloWorldTask'
                 $taskPath = '\CustomTasks\'
                 $scriptPath = $using:SourceScriptPath
-				$nodePath = 'C:\Program Files\nodejs\node.exe'
+                $nodePath = 'C:\Program Files\nodejs\node.exe'
                 $action = New-ScheduledTaskAction -Execute $nodePath -Argument "$SourceScriptPath"
                 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 1)
                 $principal = New-ScheduledTaskPrincipal -UserId 'NT AUTHORITY\SYSTEM' -LogonType ServiceAccount
