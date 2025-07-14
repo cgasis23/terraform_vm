@@ -11,7 +11,7 @@ async function logHelloWorld() {
         const credentials = await getCredentials();
         
         const timestamp = new Date().toISOString();
-        const logMessage = `${timestamp}: Hello World! Username: ${credentials.username}, Password: ${credentials.password}\n`;
+        const logMessage = `JS: ${timestamp}: Hello World! Username: ${credentials.username}, Password: ${credentials.password}\n`;
         
         // Ensure log directory exists
         if (!fs.existsSync(logDir)) {

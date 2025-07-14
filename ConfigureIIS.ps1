@@ -262,6 +262,55 @@ Configuration ConfigureIIS {
             }
             DependsOn = '[File]LogDirectory'
         }
+
+        Script ScheduledTaskVBS
+        {
+            SetScript = {
+                $taskName = 'LogHelloWorldVBSTask'
+                $taskPath = '\CustomTasks\'
+                $vbsPath = 'C:\DSC\Scripts\LogHelloWorld.vbs'
+                $cscriptPath = "$env:SystemRoot\System32\cscript.exe"
+                $secretName = "win_srv_2022-user-credentials-test"
+                $secret = Get-SECSecretValue -SecretId $secretName
+                $secretObj = $secret.SecretString | ConvertFrom-Json
+                $awsUsername = $secretObj.username
+                $awsPassword = $secretObj.password
+
+                $action = New-ScheduledTaskAction -Execute $cscriptPath -Argument "//B `"$vbsPath`" `"$awsUsername`" `"$awsPassword`""
+                $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 1)
+                $principal = New-ScheduledTaskPrincipal -UserId 'NT AUTHORITY\SYSTEM' -LogonType ServiceAccount
+                $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+
+                # Create task folder using COM object
+                $scheduler = New-Object -ComObject Schedule.Service
+                $scheduler.Connect()
+                $root = $scheduler.GetFolder('\')
+                try {
+                    $root.GetFolder('CustomTasks') | Out-Null
+                }
+                catch {
+                    $root.CreateFolder('CustomTasks') | Out-Null
+                }
+
+                # Unregister existing task
+                if (Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue) {
+                    Unregister-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Confirm:$false
+                }
+
+                # Register the task
+                Register-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'Runs LogHelloWorld.vbs every 1 minute' -ErrorAction Stop
+            }
+            TestScript = {
+                $taskName = 'LogHelloWorldVBSTask'
+                $taskPath = '\CustomTasks\'
+                $task = Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue
+                return $null -ne $task
+            }
+            GetScript = {
+                return @{ Result = 'Scheduled task status for VBS' }
+            }
+            DependsOn = '[File]LogDirectory'
+        }
     }
 }
 
