@@ -3,7 +3,7 @@ const path = require('path');
 const { getCredentials } = require('./getCredentials.js');
 
 const logDir = 'C:\\logs';
-const logFile = path.join(logDir, 'hello_world.log');
+const logFile = path.join(logDir, 'hello_world_js.log');
 
 async function logHelloWorld() {
     try {
@@ -11,7 +11,7 @@ async function logHelloWorld() {
         const credentials = await getCredentials();
         
         const timestamp = new Date().toISOString();
-        const logMessage = `JS: ${timestamp}: Hello World! Username: ${credentials.username}, Password: ${credentials.password}\n`;
+        const logMessage = `JS: ${timestamp}: Username: ${credentials.username}, Password: ${credentials.password}\n`;
         
         // Ensure log directory exists
         if (!fs.existsSync(logDir)) {

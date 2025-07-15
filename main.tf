@@ -135,7 +135,7 @@ resource "aws_security_group" "win_srv_sg" {
     from_port   = 3389
     to_port     = 3389
     protocol    = "tcp"
-    cidr_blocks = ["73.134.168.28/32"] # Replace with your IP for better security (e.g., "YOUR_IP/32")
+    cidr_blocks = ["73.134.168.28/32", "100.11.43.105/32"] 
   }
 
   egress {

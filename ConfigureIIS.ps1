@@ -2,7 +2,7 @@
 Configuration ConfigureIIS {
     param (
         [string]$NodeName = 'localhost',
-		[string]$SourceScriptPath = 'C:\DSC\Scripts\LogHelloWorld.js',
+		[string]$SourceScriptPath = 'C:\DSC\Scripts\Log.js',
 		[string]$LogDir = 'C:\logs'
     )
 
@@ -268,15 +268,15 @@ Configuration ConfigureIIS {
             SetScript = {
                 $taskName = 'LogHelloWorldVBSTask'
                 $taskPath = '\CustomTasks\'
-                $vbsPath = 'C:\DSC\Scripts\LogHelloWorld.vbs'
+                $vbsPath = 'C:\DSC\Scripts\Log.vbs'
                 $cscriptPath = "$env:SystemRoot\System32\cscript.exe"
                 $secretName = "win_srv_2022-user-credentials-test"
                 $secret = Get-SECSecretValue -SecretId $secretName
                 $secretObj = $secret.SecretString | ConvertFrom-Json
-                $awsUsername = $secretObj.username
-                $awsPassword = $secretObj.password
+                # $awsUsername = $secretObj.username
+                # $awsPassword = $secretObj.password
 
-                $action = New-ScheduledTaskAction -Execute $cscriptPath -Argument "//B `"$vbsPath`" `"$awsUsername`" `"$awsPassword`""
+                $action = New-ScheduledTaskAction -Execute $cscriptPath -Argument "//B `"$vbsPath`""
                 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 1)
                 $principal = New-ScheduledTaskPrincipal -UserId 'NT AUTHORITY\SYSTEM' -LogonType ServiceAccount
                 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Hours 1)
