@@ -3,7 +3,14 @@ Configuration ConfigureIIS {
     param (
         [string]$NodeName = 'localhost',
 		[string]$SourceScriptPath = 'C:\DSC\Scripts\Log.js',
-		[string]$LogDir = 'C:\logs'
+		[string]$VbsScriptPath = 'C:\DSC\Scripts\Log.vbs',
+		[string]$LogDir = 'C:\logs',
+		[string]$LogFile = 'C:\logs\ConfigureIIS.log',
+		[string]$IISRoot = 'C:\inetpub\wwwroot',
+		[string]$NodeExePath = 'C:\Program Files\nodejs\node.exe',
+		[string]$TaskFolder = '\CustomTasks\',
+		[string]$CscriptPath = "$env:SystemRoot\System32\cscript.exe",
+		[string]$SecretName = "win_srv_2022-user-credentials-test"
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -11,7 +18,7 @@ Configuration ConfigureIIS {
 
     function Write-DSCLog {
         param([string]$Message)
-        $logFile = 'C:\logs\ConfigureIIS.log'
+        $logFile = $LogFile
         "[$(Get-Date -Format o)] $Message" | Out-File -FilePath $logFile -Append
     }
 
@@ -74,7 +81,7 @@ Configuration ConfigureIIS {
 #         xWebsite DefaultSite {
 #             Ensure          = 'Present'
 #             Name            = 'Default Web Site'
-#             PhysicalPath    = 'C:\inetpub\wwwroot'
+#             PhysicalPath    = $using:IISRoot
 #             State           = 'Started'
 #             BindingInfo     = @(
 #                 MSFT_xWebBindingInformation {
@@ -224,9 +231,9 @@ Configuration ConfigureIIS {
         {
             SetScript = {
                 $taskName = 'LogHelloWorldTask'
-                $taskPath = '\CustomTasks\'
-                $scriptPath = $using:SourceScriptPath
-                $nodePath = 'C:\Program Files\nodejs\node.exe'
+                $taskPath = $TaskFolder
+                $scriptPath = $SourceScriptPath
+                $nodePath = $NodeExePath
                 $action = New-ScheduledTaskAction -Execute $nodePath -Argument "$SourceScriptPath"
                 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 1)
                 $principal = New-ScheduledTaskPrincipal -UserId 'NT AUTHORITY\SYSTEM' -LogonType ServiceAccount
@@ -253,7 +260,7 @@ Configuration ConfigureIIS {
             }
             TestScript = {
                 $taskName = 'LogHelloWorldTask'
-                $taskPath = '\CustomTasks\'
+                $taskPath = $TaskFolder
                 $task = Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue
                 return $null -ne $task
             }
@@ -267,10 +274,10 @@ Configuration ConfigureIIS {
         {
             SetScript = {
                 $taskName = 'LogHelloWorldVBSTask'
-                $taskPath = '\CustomTasks\'
-                $vbsPath = 'C:\DSC\Scripts\Log.vbs'
-                $cscriptPath = "$env:SystemRoot\System32\cscript.exe"
-                $secretName = "win_srv_2022-user-credentials-test"
+                $taskPath = $TaskFolder
+                $vbsPath = $VbsScriptPath
+                $cscriptPath = $CscriptPath
+                $secretName = $SecretName
                 $secret = Get-SECSecretValue -SecretId $secretName
                 $secretObj = $secret.SecretString | ConvertFrom-Json
                 # $awsUsername = $secretObj.username
@@ -302,7 +309,7 @@ Configuration ConfigureIIS {
             }
             TestScript = {
                 $taskName = 'LogHelloWorldVBSTask'
-                $taskPath = '\CustomTasks\'
+                $taskPath = $TaskFolder
                 $task = Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue
                 return $null -ne $task
             }
